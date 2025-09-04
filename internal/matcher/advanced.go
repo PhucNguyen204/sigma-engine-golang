@@ -28,6 +28,9 @@ func CreateCIDRMatch() MatchFn {
 					if ip.Equal(singleIP) {
 						return true, nil
 					}
+				} else {
+					// Neither valid CIDR nor valid IP
+					return false, fmt.Errorf("invalid CIDR or IP address: %s", cidrStr)
 				}
 				continue
 			}
@@ -42,18 +45,18 @@ func CreateCIDRMatch() MatchFn {
 }
 
 // CreateNumericRangeMatch creates a numeric range matching function
-// Supports formats like "1-10", ">5", "<100", ">=10", "<=50"
+// Supports formats like "1-10", "10..20", ">5", "<100", ">=10", "<=50"
 func CreateNumericRangeMatch() MatchFn {
 	return func(fieldValue string, values []string, modifiers []string) (bool, error) {
 		fieldNum, err := parseNumber(fieldValue)
 		if err != nil {
-			return false, err
+			return false, fmt.Errorf("invalid numeric value: %s", fieldValue)
 		}
 
 		for _, rangeStr := range values {
 			match, err := isInNumericRange(fieldNum, rangeStr)
 			if err != nil {
-				continue // Skip invalid ranges
+				return false, fmt.Errorf("invalid range format: %s", rangeStr)
 			}
 			if match {
 				return true, nil
@@ -72,8 +75,12 @@ func CreateFuzzyMatch() MatchFn {
 
 		// Check for threshold modifier
 		for _, mod := range modifiers {
-			if strings.HasPrefix(mod, "threshold=") {
-				if t, err := strconv.ParseFloat(strings.TrimPrefix(mod, "threshold="), 64); err == nil {
+			if strings.HasPrefix(mod, "fuzzy:") {
+				if t, err := strconv.ParseFloat(strings.TrimPrefix(mod, "fuzzy:"), 64); err == nil && t >= 0.0 && t <= 1.0 {
+					threshold = t
+				}
+			} else if strings.HasPrefix(mod, "threshold=") {
+				if t, err := strconv.ParseFloat(strings.TrimPrefix(mod, "threshold="), 64); err == nil && t >= 0.0 && t <= 1.0 {
 					threshold = t
 				}
 			}
@@ -149,8 +156,31 @@ func isInNumericRange(value float64, rangeStr string) (bool, error) {
 		return value < max, err
 	}
 
-	// Handle range (e.g., "1-10")
-	if strings.Contains(rangeStr, "-") {
+	// Handle range formats: "1-10", "10..20", "10...20"
+	if strings.Contains(rangeStr, "..") {
+		// Rust-style inclusive range "10..20" or exclusive "10...20"
+		var parts []string
+		inclusive := true
+		if strings.Contains(rangeStr, "...") {
+			parts = strings.SplitN(rangeStr, "...", 2)
+			inclusive = false
+		} else {
+			parts = strings.SplitN(rangeStr, "..", 2)
+		}
+
+		if len(parts) == 2 {
+			min, err1 := parseNumber(parts[0])
+			max, err2 := parseNumber(parts[1])
+			if err1 == nil && err2 == nil {
+				if inclusive {
+					return value >= min && value <= max, nil
+				} else {
+					return value >= min && value < max, nil
+				}
+			}
+		}
+	} else if strings.Contains(rangeStr, "-") && !strings.HasPrefix(rangeStr, "-") {
+		// Traditional range "1-10" (but not negative numbers like "-5")
 		parts := strings.SplitN(rangeStr, "-", 2)
 		if len(parts) == 2 {
 			min, err1 := parseNumber(parts[0])
