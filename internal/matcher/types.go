@@ -24,11 +24,11 @@ type FieldExtractorFn func(event interface{}, fieldPath string) (interface{}, er
 
 // MatchResult represents the result of matching a primitive against an event
 type MatchResult struct {
-	Matched        bool   `json:"matched"`
-	FieldPath      string `json:"field_path"`
-	MatchedValue   string `json:"matched_value,omitempty"`
+	Matched          bool   `json:"matched"`
+	FieldPath        string `json:"field_path"`
+	MatchedValue     string `json:"matched_value,omitempty"`
 	TransformedValue string `json:"transformed_value,omitempty"`
-	Error          string `json:"error,omitempty"`
+	Error            string `json:"error,omitempty"`
 }
 
 // NewMatchResult creates a new match result
@@ -109,7 +109,7 @@ func (r *MatcherRegistry) GetModifier(name string) (ModifierFn, bool) {
 func (r *MatcherRegistry) ListMatchers() []string {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	
+
 	names := make([]string, 0, len(r.matchers))
 	for name := range r.matchers {
 		names = append(names, name)
@@ -121,7 +121,7 @@ func (r *MatcherRegistry) ListMatchers() []string {
 func (r *MatcherRegistry) ListModifiers() []string {
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	
+
 	names := make([]string, 0, len(r.modifiers))
 	for name := range r.modifiers {
 		names = append(names, name)
@@ -153,13 +153,13 @@ func (r *MatcherRegistry) Clear() {
 
 // Common errors
 var (
-	ErrUnsupportedMatchType = errors.New("unsupported match type")
-	ErrUnsupportedModifier  = errors.New("unsupported modifier")
-	ErrFieldNotFound        = errors.New("field not found")
+	ErrUnsupportedMatchType  = errors.New("unsupported match type")
+	ErrUnsupportedModifier   = errors.New("unsupported modifier")
+	ErrFieldNotFound         = errors.New("field not found")
 	ErrFieldExtractionFailed = errors.New("field extraction failed")
-	ErrInvalidFieldValue    = errors.New("invalid field value")
-	ErrMatchFunctionFailed  = errors.New("match function failed")
-	ErrModifierFailed       = errors.New("modifier function failed")
+	ErrInvalidFieldValue     = errors.New("invalid field value")
+	ErrMatchFunctionFailed   = errors.New("match function failed")
+	ErrModifierFailed        = errors.New("modifier function failed")
 )
 
 // Default registry instance (can be used globally)

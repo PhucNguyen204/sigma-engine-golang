@@ -23,10 +23,10 @@ type FilterIntegration struct {
 	AhoCorasickPatterns []string
 	LiteralPatterns     map[string][]string // field -> patterns
 	RegexPatterns       map[string][]string // field -> patterns
-	
+
 	// Statistics
 	Stats FilterCompilationStats
-	
+
 	// Thread safety
 	mutex sync.RWMutex
 }
@@ -45,9 +45,9 @@ func NewFilterIntegration() *FilterIntegration {
 func (f *FilterIntegration) AddPrimitive(primitive *ir.Primitive) {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
-	
+
 	f.Stats.TotalPrimitives++
-	
+
 	switch primitive.MatchType {
 	case "equals", "contains", "startswith", "endswith":
 		f.addLiteralPrimitive(primitive)
@@ -61,16 +61,16 @@ func (f *FilterIntegration) AddPrimitive(primitive *ir.Primitive) {
 // addLiteralPrimitive processes literal-based primitives
 func (f *FilterIntegration) addLiteralPrimitive(primitive *ir.Primitive) {
 	f.Stats.LiteralPrimitives++
-	
+
 	// Add to field-specific patterns
 	if f.LiteralPatterns[primitive.Field] == nil {
 		f.LiteralPatterns[primitive.Field] = make([]string, 0)
 	}
-	
+
 	for _, value := range primitive.Values {
 		// Apply modifiers to get final pattern
 		finalValue := f.applyModifiers(value, primitive.Modifiers)
-		
+
 		f.LiteralPatterns[primitive.Field] = append(f.LiteralPatterns[primitive.Field], finalValue)
 		f.AhoCorasickPatterns = append(f.AhoCorasickPatterns, finalValue)
 	}
@@ -79,12 +79,12 @@ func (f *FilterIntegration) addLiteralPrimitive(primitive *ir.Primitive) {
 // addRegexPrimitive processes regex-based primitives
 func (f *FilterIntegration) addRegexPrimitive(primitive *ir.Primitive) {
 	f.Stats.RegexPrimitives++
-	
+
 	// Add to field-specific regex patterns
 	if f.RegexPatterns[primitive.Field] == nil {
 		f.RegexPatterns[primitive.Field] = make([]string, 0)
 	}
-	
+
 	for _, pattern := range primitive.Values {
 		f.RegexPatterns[primitive.Field] = append(f.RegexPatterns[primitive.Field], pattern)
 	}
@@ -93,7 +93,7 @@ func (f *FilterIntegration) addRegexPrimitive(primitive *ir.Primitive) {
 // applyModifiers applies modifiers to a value (simplified version)
 func (f *FilterIntegration) applyModifiers(value string, modifiers []string) string {
 	result := value
-	
+
 	for _, modifier := range modifiers {
 		switch modifier {
 		case "nocase", "ignore_case":
@@ -106,7 +106,7 @@ func (f *FilterIntegration) applyModifiers(value string, modifiers []string) str
 			result = strings.ToLower(result)
 		}
 	}
-	
+
 	return result
 }
 
@@ -114,18 +114,18 @@ func (f *FilterIntegration) applyModifiers(value string, modifiers []string) str
 func (f *FilterIntegration) GetAhoCorasickPatterns() []string {
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
-	
+
 	// Deduplicate patterns
 	seen := make(map[string]bool)
 	result := make([]string, 0)
-	
+
 	for _, pattern := range f.AhoCorasickPatterns {
 		if !seen[pattern] {
 			seen[pattern] = true
 			result = append(result, pattern)
 		}
 	}
-	
+
 	return result
 }
 
@@ -133,14 +133,14 @@ func (f *FilterIntegration) GetAhoCorasickPatterns() []string {
 func (f *FilterIntegration) GetLiteralPatternsByField() map[string][]string {
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
-	
+
 	// Create a copy to avoid external modifications
 	result := make(map[string][]string)
 	for field, patterns := range f.LiteralPatterns {
 		result[field] = make([]string, len(patterns))
 		copy(result[field], patterns)
 	}
-	
+
 	return result
 }
 
@@ -148,14 +148,14 @@ func (f *FilterIntegration) GetLiteralPatternsByField() map[string][]string {
 func (f *FilterIntegration) GetRegexPatternsByField() map[string][]string {
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
-	
+
 	// Create a copy to avoid external modifications
 	result := make(map[string][]string)
 	for field, patterns := range f.RegexPatterns {
 		result[field] = make([]string, len(patterns))
 		copy(result[field], patterns)
 	}
-	
+
 	return result
 }
 
@@ -163,15 +163,15 @@ func (f *FilterIntegration) GetRegexPatternsByField() map[string][]string {
 func (f *FilterIntegration) GetStatistics() FilterCompilationStats {
 	f.mutex.RLock()
 	defer f.mutex.RUnlock()
-	
+
 	stats := f.Stats
 	stats.UniqueFields = len(f.LiteralPatterns) + len(f.RegexPatterns)
-	
+
 	// Calculate average selectivity (simplified)
 	if stats.TotalPrimitives > 0 {
 		stats.AverageSelectivity = float64(stats.LiteralPrimitives) / float64(stats.TotalPrimitives)
 	}
-	
+
 	// Estimate memory usage (simplified)
 	memoryUsage := 0
 	for _, patterns := range f.LiteralPatterns {
@@ -185,7 +185,7 @@ func (f *FilterIntegration) GetStatistics() FilterCompilationStats {
 		}
 	}
 	stats.EstimatedMemoryUsage = memoryUsage
-	
+
 	return stats
 }
 
@@ -193,7 +193,7 @@ func (f *FilterIntegration) GetStatistics() FilterCompilationStats {
 func (f *FilterIntegration) Clear() {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
-	
+
 	f.AhoCorasickPatterns = make([]string, 0)
 	f.LiteralPatterns = make(map[string][]string)
 	f.RegexPatterns = make(map[string][]string)
@@ -212,7 +212,7 @@ func NewLiteralPrefilter(patterns []string) *LiteralPrefilter {
 	for _, pattern := range patterns {
 		patternMap[pattern] = true
 	}
-	
+
 	return &LiteralPrefilter{
 		patterns: patternMap,
 	}
@@ -222,19 +222,19 @@ func NewLiteralPrefilter(patterns []string) *LiteralPrefilter {
 func (p *LiteralPrefilter) MightMatch(value string) bool {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
-	
+
 	// Check exact match
 	if p.patterns[value] {
 		return true
 	}
-	
+
 	// Check if value contains any pattern
 	for pattern := range p.patterns {
 		if strings.Contains(value, pattern) {
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -266,7 +266,7 @@ func CalculateSelectivity(pattern string) float64 {
 	// Simple heuristic: shorter patterns are less selective
 	// This is a simplified calculation
 	baseSelectivity := 1.0 / float64(len(pattern)+1)
-	
+
 	// Adjust for special characters (more selective)
 	specialChars := 0
 	for _, char := range pattern {
@@ -274,7 +274,7 @@ func CalculateSelectivity(pattern string) float64 {
 			specialChars++
 		}
 	}
-	
+
 	selectivityBonus := float64(specialChars) * 0.1
 	return baseSelectivity - selectivityBonus
 }

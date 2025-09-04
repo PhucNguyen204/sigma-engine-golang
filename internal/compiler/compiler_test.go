@@ -78,23 +78,23 @@ detection:
 
 func TestNewCompiler(t *testing.T) {
 	compiler := NewCompiler()
-	
+
 	if compiler == nil {
 		t.Fatal("NewCompiler() returned nil")
 	}
-	
+
 	if compiler.fieldMapping == nil {
 		t.Error("Field mapping not initialized")
 	}
-	
+
 	if compiler.primitiveMap == nil {
 		t.Error("Primitive map not initialized")
 	}
-	
+
 	if compiler.ruleMap == nil {
 		t.Error("Rule map not initialized")
 	}
-	
+
 	config := compiler.GetConfig()
 	if !config.EnableFieldMapping {
 		t.Error("Expected field mapping to be enabled by default")
@@ -106,26 +106,26 @@ func TestNewCompilerWithConfig(t *testing.T) {
 		EnableFieldMapping:           false,
 		EnableConditionValidation:    false,
 		EnablePrimitiveDeduplication: false,
-		CaseSensitiveFields:         true,
-		MaxRuleComplexity:           50,
-		Debug:                       true,
+		CaseSensitiveFields:          true,
+		MaxRuleComplexity:            50,
+		Debug:                        true,
 	}
-	
+
 	compiler := NewCompilerWithConfig(config)
-	
+
 	if compiler == nil {
 		t.Fatal("NewCompilerWithConfig() returned nil")
 	}
-	
+
 	actualConfig := compiler.GetConfig()
 	if actualConfig.EnableFieldMapping != false {
 		t.Error("Expected field mapping to be disabled")
 	}
-	
+
 	if actualConfig.CaseSensitiveFields != true {
 		t.Error("Expected case sensitive fields to be enabled")
 	}
-	
+
 	if actualConfig.MaxRuleComplexity != 50 {
 		t.Error("Expected max rule complexity to be 50")
 	}
@@ -133,42 +133,42 @@ func TestNewCompilerWithConfig(t *testing.T) {
 
 func TestCompileRule(t *testing.T) {
 	compiler := NewCompiler()
-	
+
 	rule, err := compiler.CompileRule(testSigmaRule1)
 	if err != nil {
 		t.Fatalf("Failed to compile rule: %v", err)
 	}
-	
+
 	if rule.ID != "12345678-1234-1234-1234-123456789abc" {
 		t.Errorf("Expected rule ID to be '12345678-1234-1234-1234-123456789abc', got %s", rule.ID)
 	}
-	
+
 	if rule.Title != "Test Suspicious Process Creation" {
 		t.Errorf("Expected title to be 'Test Suspicious Process Creation', got %s", rule.Title)
 	}
-	
+
 	if rule.Level != "medium" {
 		t.Errorf("Expected level to be 'medium', got %s", rule.Level)
 	}
-	
+
 	if len(rule.Tags) != 2 {
 		t.Errorf("Expected 2 tags, got %d", len(rule.Tags))
 	}
-	
+
 	if rule.Detection == nil {
 		t.Error("Expected detection section to be present")
 	}
-	
+
 	condition, hasCondition := rule.Detection["condition"]
 	if !hasCondition {
 		t.Error("Expected condition to be present in detection section")
 	}
-	
+
 	conditionStr, ok := condition.(string)
 	if !ok {
 		t.Error("Expected condition to be a string")
 	}
-	
+
 	if conditionStr != "selection and not filter" {
 		t.Errorf("Expected condition to be 'selection and not filter', got %s", conditionStr)
 	}
@@ -176,64 +176,64 @@ func TestCompileRule(t *testing.T) {
 
 func TestCompileRules(t *testing.T) {
 	compiler := NewCompiler()
-	
+
 	rules := []string{testSigmaRule1, testSigmaRule2}
 	result, err := compiler.CompileRules(rules)
-	
+
 	if err != nil {
 		t.Fatalf("Failed to compile rules: %v", err)
 	}
-	
+
 	if result == nil {
 		t.Fatal("Compilation result is nil")
 	}
-	
+
 	if result.Statistics.TotalRules != 2 {
 		t.Errorf("Expected 2 total rules, got %d", result.Statistics.TotalRules)
 	}
-	
+
 	if result.Statistics.SuccessfulRules != 2 {
 		t.Errorf("Expected 2 successful rules, got %d", result.Statistics.SuccessfulRules)
 	}
-	
+
 	if result.Statistics.FailedRules != 0 {
 		t.Errorf("Expected 0 failed rules, got %d", result.Statistics.FailedRules)
 	}
-	
+
 	if result.Ruleset == nil {
 		t.Error("Expected ruleset to be present")
 	}
-	
+
 	primitives := compiler.GetPrimitives()
 	if len(primitives) == 0 {
 		t.Error("Expected primitives to be generated")
 	}
-	
+
 	if result.Statistics.TotalPrimitives != len(primitives) {
-		t.Errorf("Expected total primitives to match actual primitives: %d vs %d", 
+		t.Errorf("Expected total primitives to match actual primitives: %d vs %d",
 			result.Statistics.TotalPrimitives, len(primitives))
 	}
 }
 
 func TestCompileRulesWithFieldMapping(t *testing.T) {
 	compiler := NewCompiler()
-	
+
 	// Load preset mappings
 	err := compiler.fieldMapping.LoadPresetMappings("sysmon")
 	if err != nil {
 		t.Fatalf("Failed to load preset mappings: %v", err)
 	}
-	
+
 	result, err := compiler.CompileRules([]string{testSigmaRule1})
 	if err != nil {
 		t.Fatalf("Failed to compile rules with field mapping: %v", err)
 	}
-	
+
 	primitives := compiler.GetPrimitives()
 	if len(primitives) == 0 {
 		t.Error("Expected primitives to be generated")
 	}
-	
+
 	// Check that field names were mapped
 	foundMappedField := false
 	for _, primitive := range primitives {
@@ -242,11 +242,11 @@ func TestCompileRulesWithFieldMapping(t *testing.T) {
 			break
 		}
 	}
-	
+
 	if !foundMappedField {
 		t.Error("Expected at least one primitive with mapped field")
 	}
-	
+
 	if result.Statistics.SuccessfulRules != 1 {
 		t.Errorf("Expected 1 successful rule, got %d", result.Statistics.SuccessfulRules)
 	}
@@ -258,7 +258,7 @@ func TestCompileRulesWithDeduplication(t *testing.T) {
 		EnableFieldMapping:           false,
 		EnableConditionValidation:    false,
 	})
-	
+
 	// Create a rule that should generate duplicate primitives
 	duplicateRule := `
 title: Test Duplicate Primitives
@@ -269,16 +269,16 @@ detection:
     field1: 'value1'  # Same as selection1
   condition: selection1 or selection2
 `
-	
+
 	result, err := compiler.CompileRules([]string{duplicateRule})
 	if err != nil {
 		t.Fatalf("Failed to compile rules with deduplication: %v", err)
 	}
-	
+
 	if result.Statistics.DuplicatedPrimitives <= 0 {
 		t.Error("Expected some duplicated primitives to be detected and deduplicated")
 	}
-	
+
 	if result.Statistics.UniquePrimitives >= result.Statistics.TotalPrimitives {
 		t.Error("Expected unique primitives to be less than total primitives")
 	}
@@ -287,19 +287,19 @@ detection:
 func TestCompileRulesWithValidation(t *testing.T) {
 	compiler := NewCompilerWithConfig(CompilerConfig{
 		EnableConditionValidation: true,
-		MaxRuleComplexity:        10,
+		MaxRuleComplexity:         10,
 	})
-	
+
 	result, err := compiler.CompileRules([]string{testSigmaRule3})
 	if err != nil {
 		t.Fatalf("Failed to compile rules with validation: %v", err)
 	}
-	
+
 	// Complex rule should generate warnings
 	if len(result.Warnings) == 0 {
 		t.Error("Expected complexity warnings for complex rule")
 	}
-	
+
 	if result.Statistics.ComplexConditions == 0 {
 		t.Error("Expected complex conditions to be detected")
 	}
@@ -307,7 +307,7 @@ func TestCompileRulesWithValidation(t *testing.T) {
 
 func TestCompileRulesWithErrors(t *testing.T) {
 	compiler := NewCompiler()
-	
+
 	invalidRule := `
 title: Invalid Rule
 detection:
@@ -315,16 +315,16 @@ detection:
   selection:
     field: value
 `
-	
+
 	result, err := compiler.CompileRules([]string{invalidRule})
 	if err != nil {
 		t.Fatalf("Unexpected error during compilation: %v", err)
 	}
-	
+
 	if len(result.Errors) == 0 {
 		t.Error("Expected errors for invalid rule")
 	}
-	
+
 	if result.Statistics.FailedRules == 0 {
 		t.Error("Expected failed rules count to be greater than 0")
 	}
@@ -332,7 +332,7 @@ detection:
 
 func TestPrimitiveCreation(t *testing.T) {
 	compiler := NewCompiler()
-	
+
 	// Test different primitive types
 	testCases := []struct {
 		field     string
@@ -345,34 +345,34 @@ func TestPrimitiveCreation(t *testing.T) {
 		{"field3", "regex", []string{"pattern.*"}, []string{}},
 		{"field4", "equals", []string{"value"}, []string{"base64"}},
 	}
-	
+
 	for _, tc := range testCases {
 		primitiveID := compiler.createPrimitive(tc.field, tc.matchType, tc.values, tc.modifiers)
-		
+
 		if primitiveID < 0 {
 			t.Errorf("Invalid primitive ID: %d", primitiveID)
 		}
 	}
-	
+
 	primitives := compiler.GetPrimitives()
 	if len(primitives) != len(testCases) {
 		t.Errorf("Expected %d primitives, got %d", len(testCases), len(primitives))
 	}
-	
+
 	for i, primitive := range primitives {
 		tc := testCases[i]
 		if primitive.Field != tc.field {
 			t.Errorf("Expected field %s, got %s", tc.field, primitive.Field)
 		}
-		
+
 		if primitive.MatchType != tc.matchType {
 			t.Errorf("Expected match type %s, got %s", tc.matchType, primitive.MatchType)
 		}
-		
+
 		if len(primitive.Values) != len(tc.values) {
 			t.Errorf("Expected %d values, got %d", len(tc.values), len(primitive.Values))
 		}
-		
+
 		if len(primitive.Modifiers) != len(tc.modifiers) {
 			t.Errorf("Expected %d modifiers, got %d", len(tc.modifiers), len(primitive.Modifiers))
 		}
@@ -381,21 +381,21 @@ func TestPrimitiveCreation(t *testing.T) {
 
 func TestBuildMatcher(t *testing.T) {
 	compiler := NewCompiler()
-	
+
 	_, err := compiler.CompileRules([]string{testSigmaRule1})
 	if err != nil {
 		t.Fatalf("Failed to compile rules: %v", err)
 	}
-	
+
 	matcher, err := compiler.BuildMatcher()
 	if err != nil {
 		t.Fatalf("Failed to build matcher: %v", err)
 	}
-	
+
 	if matcher == nil {
 		t.Fatal("Matcher is nil")
 	}
-	
+
 	// Test that matcher exists
 	// Note: EvaluateAll method might not exist, check actual API
 	t.Log("Matcher built successfully")
@@ -403,35 +403,35 @@ func TestBuildMatcher(t *testing.T) {
 
 func TestCompilerClone(t *testing.T) {
 	compiler := NewCompiler()
-	
+
 	// Compile some rules
 	_, err := compiler.CompileRules([]string{testSigmaRule1})
 	if err != nil {
 		t.Fatalf("Failed to compile rules: %v", err)
 	}
-	
+
 	// Clone compiler
 	clone := compiler.Clone()
-	
+
 	if clone == nil {
 		t.Fatal("Clone is nil")
 	}
-	
+
 	if len(clone.GetPrimitives()) != len(compiler.GetPrimitives()) {
 		t.Error("Clone should have same number of primitives")
 	}
-	
+
 	if clone.GetRuleCount() != compiler.GetRuleCount() {
 		t.Error("Clone should have same number of rules")
 	}
-	
+
 	// Modify original should not affect clone
 	compiler.Clear()
-	
+
 	if len(compiler.GetPrimitives()) != 0 {
 		t.Error("Original should be cleared")
 	}
-	
+
 	if len(clone.GetPrimitives()) == 0 {
 		t.Error("Clone should still have primitives after original is cleared")
 	}
@@ -439,34 +439,34 @@ func TestCompilerClone(t *testing.T) {
 
 func TestCompilerClear(t *testing.T) {
 	compiler := NewCompiler()
-	
+
 	// Compile some rules
 	_, err := compiler.CompileRules([]string{testSigmaRule1, testSigmaRule2})
 	if err != nil {
 		t.Fatalf("Failed to compile rules: %v", err)
 	}
-	
+
 	// Check that data exists
 	if len(compiler.GetPrimitives()) == 0 {
 		t.Error("Expected primitives before clear")
 	}
-	
+
 	if compiler.GetRuleCount() == 0 {
 		t.Error("Expected rules before clear")
 	}
-	
+
 	// Clear compiler
 	compiler.Clear()
-	
+
 	// Check that data is cleared
 	if len(compiler.GetPrimitives()) != 0 {
 		t.Error("Expected no primitives after clear")
 	}
-	
+
 	if compiler.GetRuleCount() != 0 {
 		t.Error("Expected no rules after clear")
 	}
-	
+
 	if compiler.GetPrimitiveCount() != 0 {
 		t.Error("Expected primitive count to be 0 after clear")
 	}
@@ -474,10 +474,10 @@ func TestCompilerClear(t *testing.T) {
 
 func TestOperatorParsing(t *testing.T) {
 	compiler := NewCompiler()
-	
+
 	testCases := []struct {
-		operator        string
-		expectedType    string
+		operator          string
+		expectedType      string
 		expectedModifiers []string
 	}{
 		{"contains", "contains", []string{}},
@@ -489,23 +489,23 @@ func TestOperatorParsing(t *testing.T) {
 		{"endswith|utf16", "endswith", []string{"utf16"}},
 		{"unknown", "equals", []string{}},
 	}
-	
+
 	for _, tc := range testCases {
 		matchType, modifiers := compiler.parseOperator(tc.operator)
-		
+
 		if matchType != tc.expectedType {
-			t.Errorf("For operator %s, expected match type %s, got %s", 
+			t.Errorf("For operator %s, expected match type %s, got %s",
 				tc.operator, tc.expectedType, matchType)
 		}
-		
+
 		if len(modifiers) != len(tc.expectedModifiers) {
-			t.Errorf("For operator %s, expected %d modifiers, got %d", 
+			t.Errorf("For operator %s, expected %d modifiers, got %d",
 				tc.operator, len(tc.expectedModifiers), len(modifiers))
 		}
-		
+
 		for i, expectedMod := range tc.expectedModifiers {
 			if i >= len(modifiers) || modifiers[i] != expectedMod {
-				t.Errorf("For operator %s, expected modifier %s at index %d, got %s", 
+				t.Errorf("For operator %s, expected modifier %s at index %d, got %s",
 					tc.operator, expectedMod, i, modifiers[i])
 			}
 		}
@@ -515,7 +515,7 @@ func TestOperatorParsing(t *testing.T) {
 func BenchmarkCompileRules(b *testing.B) {
 	compiler := NewCompiler()
 	rules := []string{testSigmaRule1, testSigmaRule2, testSigmaRule3}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		compiler.Clear()
@@ -528,7 +528,7 @@ func BenchmarkCompileRules(b *testing.B) {
 
 func BenchmarkPrimitiveCreation(b *testing.B) {
 	compiler := NewCompiler()
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		compiler.createPrimitive("field", "equals", []string{"value"}, []string{})
@@ -537,13 +537,13 @@ func BenchmarkPrimitiveCreation(b *testing.B) {
 
 func BenchmarkBuildMatcher(b *testing.B) {
 	compiler := NewCompiler()
-	
+
 	// Pre-compile rules
 	_, err := compiler.CompileRules([]string{testSigmaRule1, testSigmaRule2})
 	if err != nil {
 		b.Fatalf("Failed to compile rules: %v", err)
 	}
-	
+
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		_, err := compiler.BuildMatcher()

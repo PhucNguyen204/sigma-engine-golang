@@ -98,20 +98,20 @@ func (l *Lexer) readNumber() string {
 func (l *Lexer) readString() string {
 	start := l.position // Skip opening quote
 	l.readChar()
-	
+
 	for l.current != '"' && l.current != 0 {
 		if l.current == '\\' {
 			l.readChar() // Skip escape character
 		}
 		l.readChar()
 	}
-	
+
 	if l.current == '"' {
 		result := l.input[start : l.position-1]
 		l.readChar() // Skip closing quote
 		return result
 	}
-	
+
 	// Unterminated string
 	return l.input[start : l.position-1]
 }
@@ -119,9 +119,9 @@ func (l *Lexer) readString() string {
 // NextToken returns the next token in the input
 func (l *Lexer) NextToken() Token {
 	l.skipWhitespace()
-	
+
 	pos := l.position - 1
-	
+
 	switch l.current {
 	case 0:
 		return Token{TokenEOF, "", pos}
@@ -157,7 +157,7 @@ func (l *Lexer) NextToken() Token {
 // TokenizeAll returns all tokens from the input
 func (l *Lexer) TokenizeAll() []Token {
 	var tokens []Token
-	
+
 	for {
 		token := l.NextToken()
 		tokens = append(tokens, token)
@@ -165,28 +165,28 @@ func (l *Lexer) TokenizeAll() []Token {
 			break
 		}
 	}
-	
+
 	return tokens
 }
 
 // lookupIdentifierType determines if an identifier is a keyword or regular identifier
 func lookupIdentifierType(ident string) TokenType {
 	keywords := map[string]TokenType{
-		"and":   TokenKeyword,
-		"or":    TokenKeyword,
-		"not":   TokenKeyword,
-		"AND":   TokenKeyword,
-		"OR":    TokenKeyword,
-		"NOT":   TokenKeyword,
-		"of":    TokenKeyword,
-		"all":   TokenKeyword,
+		"and":  TokenKeyword,
+		"or":   TokenKeyword,
+		"not":  TokenKeyword,
+		"AND":  TokenKeyword,
+		"OR":   TokenKeyword,
+		"NOT":  TokenKeyword,
+		"of":   TokenKeyword,
+		"all":  TokenKeyword,
 		"them": TokenKeyword,
 	}
-	
+
 	if tokenType, ok := keywords[ident]; ok {
 		return tokenType
 	}
-	
+
 	return TokenIdentifier
 }
 
@@ -272,7 +272,7 @@ func (n *GroupingNode) Accept(visitor ASTVisitor) interface{} {
 
 // QuantifierNode represents quantified expressions (1 of them, all of them)
 type QuantifierNode struct {
-	Count      int    // -1 for "all"
+	Count      int // -1 for "all"
 	Selections []string
 }
 
@@ -299,11 +299,11 @@ func NewParser(input string) *Parser {
 	p := &Parser{
 		lexer: NewLexer(input),
 	}
-	
+
 	// Read two tokens to initialize current and peek
 	p.nextToken()
 	p.nextToken()
-	
+
 	return p
 }
 
@@ -339,23 +339,23 @@ func (p *Parser) parseOrExpression() (ASTNode, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	for p.current.Type == TokenKeyword && strings.ToLower(p.current.Value) == "or" {
 		operator := p.current.Value
 		p.nextToken()
-		
+
 		right, err := p.parseAndExpression()
 		if err != nil {
 			return nil, err
 		}
-		
+
 		left = &BinaryOpNode{
 			Left:     left,
 			Operator: operator,
 			Right:    right,
 		}
 	}
-	
+
 	return left, nil
 }
 
@@ -365,23 +365,23 @@ func (p *Parser) parseAndExpression() (ASTNode, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	for p.current.Type == TokenKeyword && strings.ToLower(p.current.Value) == "and" {
 		operator := p.current.Value
 		p.nextToken()
-		
+
 		right, err := p.parseUnaryExpression()
 		if err != nil {
 			return nil, err
 		}
-		
+
 		left = &BinaryOpNode{
 			Left:     left,
 			Operator: operator,
 			Right:    right,
 		}
 	}
-	
+
 	return left, nil
 }
 
@@ -390,18 +390,18 @@ func (p *Parser) parseUnaryExpression() (ASTNode, error) {
 	if p.current.Type == TokenKeyword && strings.ToLower(p.current.Value) == "not" {
 		operator := p.current.Value
 		p.nextToken()
-		
+
 		operand, err := p.parsePrimaryExpression()
 		if err != nil {
 			return nil, err
 		}
-		
+
 		return &UnaryOpNode{
 			Operator: operator,
 			Operand:  operand,
 		}, nil
 	}
-	
+
 	return p.parsePrimaryExpression()
 }
 
@@ -424,22 +424,22 @@ func (p *Parser) parsePrimaryExpression() (ASTNode, error) {
 func (p *Parser) parseIdentifierOrQuantifier() (ASTNode, error) {
 	name := p.current.Value
 	p.nextToken()
-	
+
 	// Check for "of" keyword (quantifier pattern)
 	if p.current.Type == TokenKeyword && strings.ToLower(p.current.Value) == "of" {
 		// This is a quantifier starting with "all"
 		if strings.ToLower(name) == "all" {
 			return p.parseQuantifierRest(-1)
 		}
-		
+
 		// Try to parse as a number
 		if count, err := strconv.Atoi(name); err == nil {
 			return p.parseQuantifierRest(count)
 		}
-		
+
 		return nil, fmt.Errorf("invalid quantifier: %s", name)
 	}
-	
+
 	return &IdentifierNode{Name: name}, nil
 }
 
@@ -450,13 +450,13 @@ func (p *Parser) parseQuantifier() (ASTNode, error) {
 	if err != nil {
 		return nil, fmt.Errorf("invalid number: %s", countStr)
 	}
-	
+
 	p.nextToken()
-	
+
 	if p.current.Type == TokenKeyword && strings.ToLower(p.current.Value) == "of" {
 		return p.parseQuantifierRest(count)
 	}
-	
+
 	return nil, fmt.Errorf("expected 'of' after number in quantifier")
 }
 
@@ -466,27 +466,27 @@ func (p *Parser) parseQuantifierRest(count int) (ASTNode, error) {
 	if err := p.expectToken(TokenKeyword); err != nil {
 		return nil, err
 	}
-	
+
 	// Parse selection list or "them"
 	var selections []string
-	
+
 	if p.current.Type == TokenKeyword && strings.ToLower(p.current.Value) == "them" {
 		selections = []string{"them"}
 		p.nextToken()
 	} else if p.current.Type == TokenLeftParen {
 		// Parse parenthesized selection list
 		p.nextToken() // consume '('
-		
+
 		for p.current.Type == TokenIdentifier {
 			selections = append(selections, p.current.Value)
 			p.nextToken()
-			
+
 			// Skip commas if present
 			if p.current.Type == TokenUnknown && p.current.Value == "," {
 				p.nextToken()
 			}
 		}
-		
+
 		if err := p.expectToken(TokenRightParen); err != nil {
 			return nil, err
 		}
@@ -498,7 +498,7 @@ func (p *Parser) parseQuantifierRest(count int) (ASTNode, error) {
 		selections = []string{p.current.Value}
 		p.nextToken()
 	}
-	
+
 	return &QuantifierNode{
 		Count:      count,
 		Selections: selections,
@@ -510,16 +510,16 @@ func (p *Parser) parseGrouping() (ASTNode, error) {
 	if err := p.expectToken(TokenLeftParen); err != nil {
 		return nil, err
 	}
-	
+
 	expr, err := p.parseExpression()
 	if err != nil {
 		return nil, err
 	}
-	
+
 	if err := p.expectToken(TokenRightParen); err != nil {
 		return nil, err
 	}
-	
+
 	return &GroupingNode{Expression: expr}, nil
 }
 
@@ -550,20 +550,20 @@ func ExtractSelections(condition string) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	extractor := &SelectionExtractor{
 		selections: make(map[string]bool),
 	}
-	
+
 	ast.Accept(extractor)
-	
+
 	var result []string
 	for selection := range extractor.selections {
 		if selection != "them" { // Exclude special keywords
 			result = append(result, selection)
 		}
 	}
-	
+
 	return result, nil
 }
 
@@ -618,14 +618,14 @@ func ConditionComplexity(condition string) (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	
+
 	calculator := &ComplexityCalculator{}
 	result := ast.Accept(calculator)
-	
+
 	if complexity, ok := result.(int); ok {
 		return complexity, nil
 	}
-	
+
 	return 0, fmt.Errorf("failed to calculate complexity")
 }
 

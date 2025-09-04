@@ -11,19 +11,19 @@ import (
 type FieldMapping struct {
 	// Mapping from source field name to target field name
 	mappings map[string]string
-	
+
 	// Reverse mapping for lookups
 	reverseMappings map[string]string
-	
+
 	// Taxonomy name (e.g., "sysmon", "windows", "custom_edr")
 	taxonomy string
-	
+
 	// Mutex for thread safety
 	mutex sync.RWMutex
-	
+
 	// Case sensitivity settings
 	caseSensitive bool
-	
+
 	// Default field transformations
 	transformations map[string]FieldTransformFn
 }
@@ -53,13 +53,13 @@ func NewFieldMappingWithTaxonomy(taxonomy string) *FieldMapping {
 func (fm *FieldMapping) AddMapping(source, target string) {
 	fm.mutex.Lock()
 	defer fm.mutex.Unlock()
-	
+
 	// Normalize field names if not case sensitive
 	if !fm.caseSensitive {
 		source = strings.ToLower(source)
 		target = strings.ToLower(target)
 	}
-	
+
 	fm.mappings[source] = target
 	fm.reverseMappings[target] = source
 }
@@ -68,11 +68,11 @@ func (fm *FieldMapping) AddMapping(source, target string) {
 func (fm *FieldMapping) RemoveMapping(source string) {
 	fm.mutex.Lock()
 	defer fm.mutex.Unlock()
-	
+
 	if !fm.caseSensitive {
 		source = strings.ToLower(source)
 	}
-	
+
 	if target, exists := fm.mappings[source]; exists {
 		delete(fm.mappings, source)
 		delete(fm.reverseMappings, target)
@@ -83,24 +83,24 @@ func (fm *FieldMapping) RemoveMapping(source string) {
 func (fm *FieldMapping) MapField(source string) string {
 	fm.mutex.RLock()
 	defer fm.mutex.RUnlock()
-	
+
 	originalSource := source
 	if !fm.caseSensitive {
 		source = strings.ToLower(source)
 	}
-	
+
 	// Check direct mapping first
 	if target, exists := fm.mappings[source]; exists {
 		return target
 	}
-	
+
 	// Apply transformations if available
 	for pattern, transform := range fm.transformations {
 		if strings.Contains(source, pattern) {
 			return transform(originalSource)
 		}
 	}
-	
+
 	// Return original if no mapping found
 	return originalSource
 }
@@ -109,11 +109,11 @@ func (fm *FieldMapping) MapField(source string) string {
 func (fm *FieldMapping) HasMapping(source string) bool {
 	fm.mutex.RLock()
 	defer fm.mutex.RUnlock()
-	
+
 	if !fm.caseSensitive {
 		source = strings.ToLower(source)
 	}
-	
+
 	_, exists := fm.mappings[source]
 	return exists
 }
@@ -122,11 +122,11 @@ func (fm *FieldMapping) HasMapping(source string) bool {
 func (fm *FieldMapping) GetReverseMapping(target string) (string, bool) {
 	fm.mutex.RLock()
 	defer fm.mutex.RUnlock()
-	
+
 	if !fm.caseSensitive {
 		target = strings.ToLower(target)
 	}
-	
+
 	source, exists := fm.reverseMappings[target]
 	return source, exists
 }
@@ -149,18 +149,18 @@ func (fm *FieldMapping) GetTaxonomy() string {
 func (fm *FieldMapping) SetCaseSensitive(caseSensitive bool) {
 	fm.mutex.Lock()
 	defer fm.mutex.Unlock()
-	
+
 	if fm.caseSensitive != caseSensitive {
 		// Need to rebuild mappings with new case sensitivity
 		oldMappings := make(map[string]string)
 		for k, v := range fm.mappings {
 			oldMappings[k] = v
 		}
-		
+
 		fm.mappings = make(map[string]string)
 		fm.reverseMappings = make(map[string]string)
 		fm.caseSensitive = caseSensitive
-		
+
 		// Rebuild with new case sensitivity
 		for source, target := range oldMappings {
 			if !caseSensitive {
@@ -198,7 +198,7 @@ func (fm *FieldMapping) RemoveTransformation(pattern string) {
 func (fm *FieldMapping) GetAllMappings() map[string]string {
 	fm.mutex.RLock()
 	defer fm.mutex.RUnlock()
-	
+
 	// Return a copy to avoid external modifications
 	result := make(map[string]string)
 	for k, v := range fm.mappings {
@@ -218,7 +218,7 @@ func (fm *FieldMapping) MappingCount() int {
 func (fm *FieldMapping) Clear() {
 	fm.mutex.Lock()
 	defer fm.mutex.Unlock()
-	
+
 	fm.mappings = make(map[string]string)
 	fm.reverseMappings = make(map[string]string)
 	fm.transformations = make(map[string]FieldTransformFn)
@@ -228,7 +228,7 @@ func (fm *FieldMapping) Clear() {
 func (fm *FieldMapping) Clone() *FieldMapping {
 	fm.mutex.RLock()
 	defer fm.mutex.RUnlock()
-	
+
 	clone := &FieldMapping{
 		mappings:        make(map[string]string),
 		reverseMappings: make(map[string]string),
@@ -236,7 +236,7 @@ func (fm *FieldMapping) Clone() *FieldMapping {
 		caseSensitive:   fm.caseSensitive,
 		transformations: make(map[string]FieldTransformFn),
 	}
-	
+
 	// Copy mappings
 	for k, v := range fm.mappings {
 		clone.mappings[k] = v
@@ -244,12 +244,12 @@ func (fm *FieldMapping) Clone() *FieldMapping {
 	for k, v := range fm.reverseMappings {
 		clone.reverseMappings[k] = v
 	}
-	
+
 	// Copy transformations
 	for k, v := range fm.transformations {
 		clone.transformations[k] = v
 	}
-	
+
 	return clone
 }
 
@@ -273,17 +273,17 @@ func (fm *FieldMapping) LoadPresetMappings(presetName string) error {
 // loadSysmonMappings loads Sysmon-specific field mappings
 func (fm *FieldMapping) loadSysmonMappings() {
 	mappings := map[string]string{
-		"ProcessImage":      "Image",
+		"ProcessImage":       "Image",
 		"ProcessCommandLine": "CommandLine",
-		"ProcessId":         "ProcessId",
+		"ProcessId":          "ProcessId",
 		"ParentProcessImage": "ParentImage",
 		"ParentCommandLine":  "ParentCommandLine",
-		"User":              "User",
-		"TargetFilename":    "TargetFilename",
-		"SourceImage":       "SourceImage",
-		"TargetImage":       "TargetImage",
+		"User":               "User",
+		"TargetFilename":     "TargetFilename",
+		"SourceImage":        "SourceImage",
+		"TargetImage":        "TargetImage",
 	}
-	
+
 	for source, target := range mappings {
 		fm.AddMapping(source, target)
 	}
@@ -293,17 +293,17 @@ func (fm *FieldMapping) loadSysmonMappings() {
 // loadWindowsMappings loads Windows Event Log field mappings
 func (fm *FieldMapping) loadWindowsMappings() {
 	mappings := map[string]string{
-		"SubjectUserName":    "Account_Name",
-		"TargetUserName":     "Target_Account_Name", 
-		"ProcessName":        "Process_Name",
-		"NewProcessName":     "New_Process_Name",
-		"CommandLine":        "Process_Command_Line",
-		"ParentProcessName":  "Parent_Process_Name",
-		"LogonType":          "Logon_Type",
-		"IpAddress":          "Source_Network_Address",
-		"WorkstationName":    "Workstation_Name",
+		"SubjectUserName":   "Account_Name",
+		"TargetUserName":    "Target_Account_Name",
+		"ProcessName":       "Process_Name",
+		"NewProcessName":    "New_Process_Name",
+		"CommandLine":       "Process_Command_Line",
+		"ParentProcessName": "Parent_Process_Name",
+		"LogonType":         "Logon_Type",
+		"IpAddress":         "Source_Network_Address",
+		"WorkstationName":   "Workstation_Name",
 	}
-	
+
 	for source, target := range mappings {
 		fm.AddMapping(source, target)
 	}
@@ -313,15 +313,15 @@ func (fm *FieldMapping) loadWindowsMappings() {
 // loadLinuxMappings loads Linux/Unix field mappings
 func (fm *FieldMapping) loadLinuxMappings() {
 	mappings := map[string]string{
-		"cmd":     "command",
-		"exe":     "executable", 
-		"pid":     "process_id",
-		"ppid":    "parent_process_id",
-		"uid":     "user_id",
-		"gid":     "group_id",
-		"comm":    "command_name",
+		"cmd":  "command",
+		"exe":  "executable",
+		"pid":  "process_id",
+		"ppid": "parent_process_id",
+		"uid":  "user_id",
+		"gid":  "group_id",
+		"comm": "command_name",
 	}
-	
+
 	for source, target := range mappings {
 		fm.AddMapping(source, target)
 	}
@@ -331,17 +331,17 @@ func (fm *FieldMapping) loadLinuxMappings() {
 // loadElasticMappings loads Elastic Common Schema (ECS) field mappings
 func (fm *FieldMapping) loadElasticMappings() {
 	mappings := map[string]string{
-		"ProcessImage":      "process.executable",
+		"ProcessImage":       "process.executable",
 		"ProcessCommandLine": "process.command_line",
-		"ProcessId":         "process.pid",
+		"ProcessId":          "process.pid",
 		"ParentProcessImage": "process.parent.executable",
-		"User":              "user.name",
-		"SourceIp":          "source.ip",
-		"DestinationIp":     "destination.ip",
-		"FileName":          "file.name",
-		"FilePath":          "file.path",
+		"User":               "user.name",
+		"SourceIp":           "source.ip",
+		"DestinationIp":      "destination.ip",
+		"FileName":           "file.name",
+		"FilePath":           "file.path",
 	}
-	
+
 	for source, target := range mappings {
 		fm.AddMapping(source, target)
 	}
@@ -352,7 +352,7 @@ func (fm *FieldMapping) loadElasticMappings() {
 func (fm *FieldMapping) String() string {
 	fm.mutex.RLock()
 	defer fm.mutex.RUnlock()
-	
+
 	return fmt.Sprintf("FieldMapping{taxonomy=%s, mappings=%d, caseSensitive=%t}",
 		fm.taxonomy, len(fm.mappings), fm.caseSensitive)
 }
@@ -366,7 +366,7 @@ func CreateCamelCaseTransform() FieldTransformFn {
 		if len(parts) <= 1 {
 			return fieldName
 		}
-		
+
 		result := parts[0]
 		for i := 1; i < len(parts); i++ {
 			if len(parts[i]) > 0 {
@@ -396,7 +396,7 @@ func CreateDotNotationTransform() FieldTransformFn {
 	return func(fieldName string) string {
 		// Convert underscores and camelCase to dot notation
 		fieldName = strings.ReplaceAll(fieldName, "_", ".")
-		
+
 		var result strings.Builder
 		for i, r := range fieldName {
 			if i > 0 && 'A' <= r && r <= 'Z' {

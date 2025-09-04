@@ -8,10 +8,10 @@ import (
 
 // GlobalRegexCache provides thread-safe caching of compiled regex patterns
 type GlobalRegexCache struct {
-	cache   map[string]*CachedRegex
-	mutex   sync.RWMutex
-	config  CacheConfig
-	stats   CacheStats
+	cache  map[string]*CachedRegex
+	mutex  sync.RWMutex
+	config CacheConfig
+	stats  CacheStats
 }
 
 // CachedRegex represents a cached compiled regex with metadata
@@ -34,13 +34,13 @@ type CacheConfig struct {
 
 // CacheStats contains statistics about cache performance
 type CacheStats struct {
-	Hits            int64
-	Misses          int64
-	Compilations    int64
-	Evictions       int64
-	CurrentSize     int
-	HotPatterns     int
-	MemoryUsage     int64
+	Hits         int64
+	Misses       int64
+	Compilations int64
+	Evictions    int64
+	CurrentSize  int
+	HotPatterns  int
+	MemoryUsage  int64
 }
 
 // Global instance of regex cache
@@ -206,7 +206,7 @@ func (c *GlobalRegexCache) cleanup() {
 	}
 
 	c.stats.CurrentSize = len(c.cache)
-	
+
 	// Update hot patterns count
 	hotCount := 0
 	for _, cached := range c.cache {
@@ -221,10 +221,10 @@ func (c *GlobalRegexCache) cleanup() {
 func (c *GlobalRegexCache) GetStats() CacheStats {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	
+
 	stats := c.stats
 	stats.CurrentSize = len(c.cache)
-	
+
 	// Calculate memory usage estimate
 	memoryUsage := int64(0)
 	for _, cached := range c.cache {
@@ -232,7 +232,7 @@ func (c *GlobalRegexCache) GetStats() CacheStats {
 		memoryUsage += int64(len(cached.Pattern)) + 1000 // 1KB estimate per compiled regex
 	}
 	stats.MemoryUsage = memoryUsage
-	
+
 	return stats
 }
 
@@ -240,7 +240,7 @@ func (c *GlobalRegexCache) GetStats() CacheStats {
 func (c *GlobalRegexCache) Clear() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	
+
 	c.cache = make(map[string]*CachedRegex)
 	c.stats = CacheStats{}
 }
@@ -249,31 +249,31 @@ func (c *GlobalRegexCache) Clear() {
 func (c *GlobalRegexCache) GetHitRatio() float64 {
 	c.mutex.RLock()
 	defer c.mutex.RUnlock()
-	
+
 	total := c.stats.Hits + c.stats.Misses
 	if total == 0 {
 		return 0.0
 	}
-	
+
 	return float64(c.stats.Hits) / float64(total) * 100.0
 }
 
 // CreateCachedRegexMatch creates a regex matcher that uses the global cache
 func CreateCachedRegexMatch() MatchFn {
 	cache := GetGlobalCache()
-	
+
 	return func(fieldValue string, patterns []string, modifiers []string) (bool, error) {
 		for _, pattern := range patterns {
 			regex, err := cache.GetOrCompile(pattern)
 			if err != nil {
 				continue // Skip invalid patterns
 			}
-			
+
 			if regex.MatchString(fieldValue) {
 				return true, nil
 			}
 		}
-		
+
 		return false, nil
 	}
 }

@@ -126,7 +126,7 @@ func CreateHexDecodeModifier() ModifierFn {
 		// Remove common hex prefixes
 		cleaned := strings.TrimPrefix(input, "0x")
 		cleaned = strings.TrimPrefix(cleaned, "\\x")
-		
+
 		// Decode hex pairs
 		if len(cleaned)%2 == 0 {
 			decoded := make([]byte, 0, len(cleaned)/2)

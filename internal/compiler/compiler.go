@@ -13,45 +13,45 @@ import (
 // Compiler handles the compilation of SIGMA YAML rules into executable structures
 type Compiler struct {
 	// Primitive management
-	primitiveMap     map[string]ir.PrimitiveID
-	primitives       []ir.Primitive
-	nextPrimitiveID  ir.PrimitiveID
-	
+	primitiveMap    map[string]ir.PrimitiveID
+	primitives      []ir.Primitive
+	nextPrimitiveID ir.PrimitiveID
+
 	// Rule management
-	ruleMap          map[string]ir.RuleID
-	nextRuleID       ir.RuleID
-	
+	ruleMap    map[string]ir.RuleID
+	nextRuleID ir.RuleID
+
 	// Field mapping for normalization
-	fieldMapping     *FieldMapping
-	
+	fieldMapping *FieldMapping
+
 	// Current compilation state
-	currentRule      *SigmaRule
+	currentRule       *SigmaRule
 	currentSelections map[string][]ir.PrimitiveID
-	
+
 	// Thread safety
-	mutex            sync.Mutex
-	
+	mutex sync.Mutex
+
 	// Configuration
-	config           CompilerConfig
+	config CompilerConfig
 }
 
 // CompilerConfig contains configuration options for the compiler
 type CompilerConfig struct {
 	// Enable field mapping normalization
 	EnableFieldMapping bool
-	
+
 	// Enable condition validation
 	EnableConditionValidation bool
-	
+
 	// Enable primitive deduplication
 	EnablePrimitiveDeduplication bool
-	
+
 	// Case sensitive field matching
 	CaseSensitiveFields bool
-	
+
 	// Maximum rule complexity allowed
 	MaxRuleComplexity int
-	
+
 	// Enable debug output
 	Debug bool
 }
@@ -62,28 +62,28 @@ func DefaultCompilerConfig() CompilerConfig {
 		EnableFieldMapping:           true,
 		EnableConditionValidation:    true,
 		EnablePrimitiveDeduplication: true,
-		CaseSensitiveFields:         false,
-		MaxRuleComplexity:           100,
-		Debug:                       false,
+		CaseSensitiveFields:          false,
+		MaxRuleComplexity:            100,
+		Debug:                        false,
 	}
 }
 
 // SigmaRule represents a parsed SIGMA rule
 type SigmaRule struct {
-	ID          string                 `yaml:"id"`
-	Title       string                 `yaml:"title"`
-	Description string                 `yaml:"description"`
-	Status      string                 `yaml:"status"`
-	Author      string                 `yaml:"author"`
-	Date        string                 `yaml:"date"`
-	Modified    string                 `yaml:"modified"`
-	LogSource   map[string]interface{} `yaml:"logsource"`
-	Detection   map[string]interface{} `yaml:"detection"`
-	Fields      []string               `yaml:"fields"`
-	FalsePositives []string            `yaml:"falsepositives"`
-	Level       string                 `yaml:"level"`
-	Tags        []string               `yaml:"tags"`
-	References  []string               `yaml:"references"`
+	ID             string                 `yaml:"id"`
+	Title          string                 `yaml:"title"`
+	Description    string                 `yaml:"description"`
+	Status         string                 `yaml:"status"`
+	Author         string                 `yaml:"author"`
+	Date           string                 `yaml:"date"`
+	Modified       string                 `yaml:"modified"`
+	LogSource      map[string]interface{} `yaml:"logsource"`
+	Detection      map[string]interface{} `yaml:"detection"`
+	Fields         []string               `yaml:"fields"`
+	FalsePositives []string               `yaml:"falsepositives"`
+	Level          string                 `yaml:"level"`
+	Tags           []string               `yaml:"tags"`
+	References     []string               `yaml:"references"`
 }
 
 // CompilationResult represents the result of compiling SIGMA rules
@@ -96,35 +96,35 @@ type CompilationResult struct {
 
 // CompilationStatistics contains statistics about the compilation process
 type CompilationStatistics struct {
-	TotalRules          int
-	SuccessfulRules     int
-	FailedRules         int
-	TotalPrimitives     int
-	UniquePrimitives    int
+	TotalRules           int
+	SuccessfulRules      int
+	FailedRules          int
+	TotalPrimitives      int
+	UniquePrimitives     int
 	DuplicatedPrimitives int
-	TotalSelections     int
-	ComplexConditions   int
-	AverageComplexity   float64
-	CompilationTimeMs   int64
+	TotalSelections      int
+	ComplexConditions    int
+	AverageComplexity    float64
+	CompilationTimeMs    int64
 }
 
 // CompilationError represents an error during compilation
 type CompilationError struct {
-	RuleID      string
-	RuleTitle   string
-	Type        string
-	Message     string
-	Field       string
-	Line        int
+	RuleID    string
+	RuleTitle string
+	Type      string
+	Message   string
+	Field     string
+	Line      int
 }
 
 // CompilationWarning represents a warning during compilation
 type CompilationWarning struct {
-	RuleID      string
-	RuleTitle   string
-	Type        string
-	Message     string
-	Field       string
+	RuleID    string
+	RuleTitle string
+	Type      string
+	Message   string
+	Field     string
 }
 
 // NewCompiler creates a new SIGMA rule compiler
@@ -187,7 +187,7 @@ func (c *Compiler) GetConfig() CompilerConfig {
 func (c *Compiler) CompileRules(ruleYamls []string) (*CompilationResult, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	
+
 	result := &CompilationResult{
 		Ruleset: ir.NewCompiledRuleset(),
 		Statistics: CompilationStatistics{
@@ -196,10 +196,10 @@ func (c *Compiler) CompileRules(ruleYamls []string) (*CompilationResult, error) 
 		Errors:   make([]CompilationError, 0),
 		Warnings: make([]CompilationWarning, 0),
 	}
-	
+
 	// Reset state for new compilation
 	c.resetState()
-	
+
 	// Compile each rule
 	for i, ruleYaml := range ruleYamls {
 		err := c.compileRule(ruleYaml, result)
@@ -214,15 +214,15 @@ func (c *Compiler) CompileRules(ruleYamls []string) (*CompilationResult, error) 
 			result.Statistics.SuccessfulRules++
 		}
 	}
-	
+
 	// Finalize statistics
 	c.finalizeStatistics(result)
-	
+
 	// Copy primitives to ruleset
 	for _, primitive := range c.primitives {
 		result.Ruleset.AddPrimitive(primitive)
 	}
-	
+
 	return result, nil
 }
 
@@ -230,18 +230,18 @@ func (c *Compiler) CompileRules(ruleYamls []string) (*CompilationResult, error) 
 func (c *Compiler) CompileRule(ruleYaml string) (*SigmaRule, error) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	
+
 	var rule SigmaRule
 	err := yaml.Unmarshal([]byte(ruleYaml), &rule)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse YAML: %w", err)
 	}
-	
+
 	// Validate rule
 	if err := c.validateRule(&rule); err != nil {
 		return nil, fmt.Errorf("rule validation failed: %w", err)
 	}
-	
+
 	return &rule, nil
 }
 
@@ -253,57 +253,57 @@ func (c *Compiler) compileRule(ruleYaml string, result *CompilationResult) error
 	if err != nil {
 		return fmt.Errorf("failed to parse YAML: %w", err)
 	}
-	
+
 	c.currentRule = &rule
 	c.currentSelections = make(map[string][]ir.PrimitiveID)
-	
+
 	// Process detection section
 	detection, ok := rule.Detection["detection"]
 	if !ok {
 		detection = rule.Detection
 	}
-	
+
 	detectionMap, ok := detection.(map[string]interface{})
 	if !ok {
 		return fmt.Errorf("invalid detection section format")
 	}
-	
+
 	// Extract condition
 	condition, hasCondition := detectionMap["condition"]
 	if !hasCondition {
 		return fmt.Errorf("no condition found in detection section")
 	}
-	
+
 	conditionStr, ok := condition.(string)
 	if !ok {
 		return fmt.Errorf("condition must be a string")
 	}
-	
+
 	// Validate condition if enabled
 	if c.config.EnableConditionValidation {
 		if err := ValidateCondition(conditionStr); err != nil {
 			return fmt.Errorf("invalid condition syntax: %w", err)
 		}
-		
+
 		// Check complexity
 		complexity, err := ConditionComplexity(conditionStr)
 		if err == nil && complexity > c.config.MaxRuleComplexity {
 			result.Warnings = append(result.Warnings, CompilationWarning{
-				RuleID:  rule.ID,
+				RuleID:    rule.ID,
 				RuleTitle: rule.Title,
-				Type:    "Complexity",
-				Message: fmt.Sprintf("Rule complexity %d exceeds limit %d", complexity, c.config.MaxRuleComplexity),
+				Type:      "Complexity",
+				Message:   fmt.Sprintf("Rule complexity %d exceeds limit %d", complexity, c.config.MaxRuleComplexity),
 			})
 			result.Statistics.ComplexConditions++
 		}
 	}
-	
+
 	// Process selections
 	for key, value := range detectionMap {
 		if key == "condition" {
 			continue
 		}
-		
+
 		err := c.processSelection(key, value, result)
 		if err != nil {
 			result.Warnings = append(result.Warnings, CompilationWarning{
@@ -315,7 +315,7 @@ func (c *Compiler) compileRule(ruleYaml string, result *CompilationResult) error
 			})
 		}
 	}
-	
+
 	return nil
 }
 
@@ -325,39 +325,39 @@ func (c *Compiler) processSelection(selectionName string, selectionValue interfa
 	if !ok {
 		return fmt.Errorf("selection %s must be a map", selectionName)
 	}
-	
+
 	var selectionPrimitives []ir.PrimitiveID
-	
+
 	for fieldName, fieldValue := range selectionMap {
 		// Apply field mapping if enabled
 		if c.config.EnableFieldMapping {
 			fieldName = c.fieldMapping.MapField(fieldName)
 		}
-		
+
 		primitives, err := c.createPrimitivesFromField(fieldName, fieldValue)
 		if err != nil {
 			return fmt.Errorf("failed to process field %s: %w", fieldName, err)
 		}
-		
+
 		selectionPrimitives = append(selectionPrimitives, primitives...)
 	}
-	
+
 	c.currentSelections[selectionName] = selectionPrimitives
 	result.Statistics.TotalSelections++
-	
+
 	return nil
 }
 
 // createPrimitivesFromField creates primitives from a field definition
 func (c *Compiler) createPrimitivesFromField(fieldName string, fieldValue interface{}) ([]ir.PrimitiveID, error) {
 	var primitives []ir.PrimitiveID
-	
+
 	switch value := fieldValue.(type) {
 	case string:
 		// Single value
 		primitive := c.createPrimitive(fieldName, "equals", []string{value}, []string{})
 		primitives = append(primitives, primitive)
-		
+
 	case []interface{}:
 		// Multiple values
 		var values []string
@@ -370,12 +370,12 @@ func (c *Compiler) createPrimitivesFromField(fieldName string, fieldValue interf
 		}
 		primitive := c.createPrimitive(fieldName, "equals", values, []string{})
 		primitives = append(primitives, primitive)
-		
+
 	case map[string]interface{}:
 		// Complex field with modifiers/operators
 		for operator, operatorValue := range value {
 			matchType, modifiers := c.parseOperator(operator)
-			
+
 			var values []string
 			switch opVal := operatorValue.(type) {
 			case string:
@@ -387,17 +387,17 @@ func (c *Compiler) createPrimitivesFromField(fieldName string, fieldValue interf
 			default:
 				values = []string{fmt.Sprintf("%v", opVal)}
 			}
-			
+
 			primitive := c.createPrimitive(fieldName, matchType, values, modifiers)
 			primitives = append(primitives, primitive)
 		}
-		
+
 	default:
 		// Convert to string
 		primitive := c.createPrimitive(fieldName, "equals", []string{fmt.Sprintf("%v", value)}, []string{})
 		primitives = append(primitives, primitive)
 	}
-	
+
 	return primitives, nil
 }
 
@@ -405,14 +405,14 @@ func (c *Compiler) createPrimitivesFromField(fieldName string, fieldValue interf
 func (c *Compiler) parseOperator(operator string) (string, []string) {
 	var matchType string
 	var modifiers []string
-	
+
 	// Split operator on pipes to extract modifiers
 	parts := strings.Split(operator, "|")
 	mainOp := parts[0]
 	if len(parts) > 1 {
 		modifiers = parts[1:]
 	}
-	
+
 	// Map SIGMA operators to match types
 	switch mainOp {
 	case "contains":
@@ -428,7 +428,7 @@ func (c *Compiler) parseOperator(operator string) (string, []string) {
 	default:
 		matchType = "equals"
 	}
-	
+
 	return matchType, modifiers
 }
 
@@ -440,7 +440,7 @@ func (c *Compiler) createPrimitive(field, matchType string, values, modifiers []
 		Values:    values,
 		Modifiers: modifiers,
 	}
-	
+
 	// Check for deduplication
 	if c.config.EnablePrimitiveDeduplication {
 		key := c.primitiveToKey(&primitive)
@@ -448,18 +448,18 @@ func (c *Compiler) createPrimitive(field, matchType string, values, modifiers []
 			return existingID
 		}
 	}
-	
+
 	// Create new primitive
 	primitiveID := c.nextPrimitiveID
 	c.nextPrimitiveID++
-	
+
 	c.primitives = append(c.primitives, primitive)
-	
+
 	if c.config.EnablePrimitiveDeduplication {
 		key := c.primitiveToKey(&primitive)
 		c.primitiveMap[key] = primitiveID
 	}
-	
+
 	return primitiveID
 }
 
@@ -479,15 +479,15 @@ func (c *Compiler) getOrCreateRuleID(ruleID, ruleTitle string) ir.RuleID {
 	if key == "" {
 		key = ruleTitle
 	}
-	
+
 	if existingID, exists := c.ruleMap[key]; exists {
 		return existingID
 	}
-	
+
 	newRuleID := c.nextRuleID
 	c.nextRuleID++
 	c.ruleMap[key] = newRuleID
-	
+
 	return newRuleID
 }
 
@@ -496,17 +496,17 @@ func (c *Compiler) validateRule(rule *SigmaRule) error {
 	if rule.Title == "" {
 		return fmt.Errorf("rule must have a title")
 	}
-	
+
 	if rule.Detection == nil {
 		return fmt.Errorf("rule must have a detection section")
 	}
-	
+
 	// Check for condition
 	detection := rule.Detection
 	if _, hasCondition := detection["condition"]; !hasCondition {
 		return fmt.Errorf("detection section must have a condition")
 	}
-	
+
 	return nil
 }
 
@@ -525,7 +525,7 @@ func (c *Compiler) finalizeStatistics(result *CompilationResult) {
 	result.Statistics.TotalPrimitives = len(c.primitives)
 	result.Statistics.UniquePrimitives = len(c.primitiveMap)
 	result.Statistics.DuplicatedPrimitives = result.Statistics.TotalPrimitives - result.Statistics.UniquePrimitives
-	
+
 	if result.Statistics.TotalRules > 0 {
 		result.Statistics.AverageComplexity = float64(result.Statistics.ComplexConditions) / float64(result.Statistics.TotalRules)
 	}
@@ -535,7 +535,7 @@ func (c *Compiler) finalizeStatistics(result *CompilationResult) {
 func (c *Compiler) GetPrimitives() []ir.Primitive {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	
+
 	// Return a copy to avoid external modifications
 	result := make([]ir.Primitive, len(c.primitives))
 	copy(result, c.primitives)
@@ -579,15 +579,15 @@ func (c *Compiler) Clear() {
 func (c *Compiler) Clone() *Compiler {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
-	
+
 	clone := NewCompilerWithConfig(c.config)
 	clone.fieldMapping = c.fieldMapping.Clone()
-	
+
 	// Copy primitives
 	for _, primitive := range c.primitives {
 		clone.primitives = append(clone.primitives, primitive)
 	}
-	
+
 	// Copy maps
 	for k, v := range c.primitiveMap {
 		clone.primitiveMap[k] = v
@@ -595,9 +595,9 @@ func (c *Compiler) Clone() *Compiler {
 	for k, v := range c.ruleMap {
 		clone.ruleMap[k] = v
 	}
-	
+
 	clone.nextPrimitiveID = c.nextPrimitiveID
 	clone.nextRuleID = c.nextRuleID
-	
+
 	return clone
 }

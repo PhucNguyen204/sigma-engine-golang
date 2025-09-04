@@ -10,29 +10,29 @@ import (
 // RegisterDefaultMatchers registers all default match functions
 func RegisterDefaultMatchers() {
 	registry := GetDefaultRegistry()
-	
+
 	// Register comprehensive modifiers from modifiers.go
 	RegisterComprehensiveModifiers(registry)
-	
+
 	// Exact match functions
 	registry.RegisterMatcher("equals", CreateExactMatch())
 	registry.RegisterMatcher("exact", CreateExactMatch())
-	
+
 	// String matching functions
 	registry.RegisterMatcher("contains", CreateContainsMatch())
 	registry.RegisterMatcher("startswith", CreateStartsWithMatch())
 	registry.RegisterMatcher("endswith", CreateEndsWithMatch())
-	
+
 	// Pattern matching functions
 	registry.RegisterMatcher("regex", CreateRegexMatch())
 	registry.RegisterMatcher("re", CreateRegexMatch())
-	
+
 	// Advanced matching functions from advanced.go
 	registry.RegisterMatcher("cidr", CreateCIDRMatch())
 	registry.RegisterMatcher("range", CreateNumericRangeMatch())
 	registry.RegisterMatcher("fuzzy", CreateFuzzyMatch())
 	registry.RegisterMatcher("length", CreateLengthMatch())
-	
+
 	// Wildcard matching functions
 	registry.RegisterMatcher("glob", CreateGlobMatch())
 	registry.RegisterMatcher("wildcard", CreateGlobMatch())
@@ -113,7 +113,7 @@ func CreateEndsWithMatch() MatchFn {
 func CreateRegexMatch() MatchFn {
 	// Use a simple regex cache to avoid recompiling
 	regexCache := make(map[string]*regexp.Regexp)
-	
+
 	return func(fieldValue string, values []string, modifiers []string) (bool, error) {
 		for _, pattern := range values {
 			// Check cache first
@@ -126,7 +126,7 @@ func CreateRegexMatch() MatchFn {
 				}
 				regexCache[pattern] = regex
 			}
-			
+
 			if regex.MatchString(fieldValue) {
 				return true, nil
 			}
@@ -167,7 +167,7 @@ func globMatch(pattern, text string) (bool, error) {
 func globToRegex(glob string) string {
 	var result strings.Builder
 	result.WriteString("^")
-	
+
 	for i, char := range glob {
 		switch char {
 		case '*':
@@ -182,7 +182,7 @@ func globToRegex(glob string) string {
 		}
 		_ = i // Suppress unused variable warning
 	}
-	
+
 	result.WriteString("$")
 	return result.String()
 }
@@ -285,7 +285,7 @@ func CreateRegexExtractModifier(pattern string, groupIndex int) ModifierFn {
 			return "", err
 		}
 	}
-	
+
 	return func(input string) (string, error) {
 		matches := regex.FindStringSubmatch(input)
 		if len(matches) <= groupIndex {

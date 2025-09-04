@@ -299,14 +299,14 @@ func GetDefaultPrimitivePool() *CompiledPrimitivePool {
 
 // CompiledPrimitiveStats provides statistics about compiled primitives
 type CompiledPrimitiveStats struct {
-	TotalPrimitives     int `json:"total_primitives"`
-	LiteralPrimitives   int `json:"literal_primitives"`
-	WildcardPrimitives  int `json:"wildcard_primitives"`
-	TotalMemoryUsage    int `json:"total_memory_usage"`
-	AverageMemoryUsage  int `json:"average_memory_usage"`
-	TotalValues         int `json:"total_values"`
-	TotalModifiers      int `json:"total_modifiers"`
-	UniqueFieldPaths    int `json:"unique_field_paths"`
+	TotalPrimitives    int `json:"total_primitives"`
+	LiteralPrimitives  int `json:"literal_primitives"`
+	WildcardPrimitives int `json:"wildcard_primitives"`
+	TotalMemoryUsage   int `json:"total_memory_usage"`
+	AverageMemoryUsage int `json:"average_memory_usage"`
+	TotalValues        int `json:"total_values"`
+	TotalModifiers     int `json:"total_modifiers"`
+	UniqueFieldPaths   int `json:"unique_field_paths"`
 }
 
 // CalculateStats computes statistics for a slice of compiled primitives

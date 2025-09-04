@@ -17,7 +17,7 @@ type MatcherBuilder struct {
 func NewMatcherBuilder() *MatcherBuilder {
 	// Create a new registry and register defaults
 	registry := NewMatcherRegistry()
-	
+
 	return &MatcherBuilder{
 		registry: registry,
 		compiled: make([]*CompiledPrimitive, 0),
@@ -61,7 +61,7 @@ func (b *MatcherBuilder) RegisterModifier(name string, modifier ModifierFn) *Mat
 // Compile compiles a slice of primitives into CompiledPrimitives
 func (b *MatcherBuilder) Compile(primitives []ir.Primitive) ([]*CompiledPrimitive, error) {
 	compiled := make([]*CompiledPrimitive, 0, len(primitives))
-	
+
 	for i, primitive := range primitives {
 		compiledPrimitive, err := b.CompilePrimitive(primitive)
 		if err != nil {
@@ -69,7 +69,7 @@ func (b *MatcherBuilder) Compile(primitives []ir.Primitive) ([]*CompiledPrimitiv
 		}
 		compiled = append(compiled, compiledPrimitive)
 	}
-	
+
 	b.compiled = compiled
 	return compiled, nil
 }
@@ -81,7 +81,7 @@ func (b *MatcherBuilder) CompilePrimitive(primitive ir.Primitive) (*CompiledPrim
 	if !exists {
 		return nil, fmt.Errorf("%w: %s", ErrUnsupportedMatchType, primitive.MatchType)
 	}
-	
+
 	// Build modifier chain
 	var modifierChain []ModifierFn
 	for _, modifierName := range primitive.Modifiers {
@@ -92,10 +92,10 @@ func (b *MatcherBuilder) CompilePrimitive(primitive ir.Primitive) (*CompiledPrim
 		}
 		modifierChain = append(modifierChain, modifier)
 	}
-	
+
 	// Parse field path
 	fieldPath := parseFieldPath(primitive.Field)
-	
+
 	// Create compiled primitive
 	compiled := NewCompiledPrimitive(
 		fieldPath,
@@ -104,7 +104,7 @@ func (b *MatcherBuilder) CompilePrimitive(primitive ir.Primitive) (*CompiledPrim
 		primitive.Values,
 		primitive.Modifiers,
 	)
-	
+
 	return compiled, nil
 }
 
@@ -153,18 +153,18 @@ func parseFieldPath(field string) []string {
 	if field == "" {
 		return []string{}
 	}
-	
+
 	// Split on dots but handle escaped dots
 	parts := make([]string, 0)
 	current := ""
 	escaped := false
-	
+
 	for i, char := range field {
 		if char == '\\' && !escaped {
 			escaped = true
 			continue
 		}
-		
+
 		if char == '.' && !escaped {
 			if current != "" {
 				parts = append(parts, current)
@@ -173,15 +173,15 @@ func parseFieldPath(field string) []string {
 		} else {
 			current += string(char)
 		}
-		
+
 		escaped = false
 		_ = i // Suppress unused variable warning
 	}
-	
+
 	if current != "" {
 		parts = append(parts, current)
 	}
-	
+
 	return parts
 }
 
@@ -190,28 +190,28 @@ func (b *MatcherBuilder) registerDefaultsToRegistry() {
 	// Exact match functions
 	b.registry.RegisterMatcher("equals", CreateExactMatch())
 	b.registry.RegisterMatcher("exact", CreateExactMatch())
-	
+
 	// String matching functions
 	b.registry.RegisterMatcher("contains", CreateContainsMatch())
 	b.registry.RegisterMatcher("startswith", CreateStartsWithMatch())
 	b.registry.RegisterMatcher("endswith", CreateEndsWithMatch())
-	
+
 	// Pattern matching functions
 	b.registry.RegisterMatcher("regex", CreateRegexMatch())
 	b.registry.RegisterMatcher("re", CreateRegexMatch())
-	
+
 	// Wildcard matching functions
 	b.registry.RegisterMatcher("glob", CreateGlobMatch())
 	b.registry.RegisterMatcher("wildcard", CreateGlobMatch())
-	
+
 	// Case transformation
 	b.registry.RegisterModifier("lowercase", CreateLowercaseModifier())
 	b.registry.RegisterModifier("uppercase", CreateUppercaseModifier())
-	
+
 	// Encoding/decoding
 	b.registry.RegisterModifier("base64", CreateBase64DecodeModifier())
 	b.registry.RegisterModifier("base64decode", CreateBase64DecodeModifier())
-	
+
 	// String manipulation
 	b.registry.RegisterModifier("trim", CreateTrimModifier())
 	b.registry.RegisterModifier("trimspace", CreateTrimModifier())
@@ -222,7 +222,7 @@ func (b *MatcherBuilder) registerAdvancedToRegistry() {
 	// Case-insensitive matchers
 	b.registry.RegisterMatcher("iequals", CreateCaseInsensitiveMatch())
 	b.registry.RegisterMatcher("icontains", CreateCaseInsensitiveContains())
-	
+
 	// Numeric matchers
 	b.registry.RegisterMatcher("numeric", CreateNumericMatch())
 }
@@ -243,7 +243,7 @@ func NewMatcherEvaluator(primitives []*CompiledPrimitive) *MatcherEvaluator {
 func (e *MatcherEvaluator) Evaluate(event interface{}) ([]bool, error) {
 	ctx := NewEventContext(event)
 	results := make([]bool, len(e.primitives))
-	
+
 	for i, primitive := range e.primitives {
 		matched, err := primitive.Matches(ctx)
 		if err != nil {
@@ -251,7 +251,7 @@ func (e *MatcherEvaluator) Evaluate(event interface{}) ([]bool, error) {
 		}
 		results[i] = matched
 	}
-	
+
 	return results, nil
 }
 
@@ -259,19 +259,19 @@ func (e *MatcherEvaluator) Evaluate(event interface{}) ([]bool, error) {
 func (e *MatcherEvaluator) EvaluateWithResults(event interface{}) ([]*MatchResult, error) {
 	ctx := NewEventContext(event)
 	results := make([]*MatchResult, len(e.primitives))
-	
+
 	for i, primitive := range e.primitives {
 		result := primitive.MatchesWithResult(ctx)
 		results[i] = result
 	}
-	
+
 	return results, nil
 }
 
 // EvaluateWithContext evaluates all primitives with a custom event context
 func (e *MatcherEvaluator) EvaluateWithContext(ctx *EventContext) ([]bool, error) {
 	results := make([]bool, len(e.primitives))
-	
+
 	for i, primitive := range e.primitives {
 		matched, err := primitive.Matches(ctx)
 		if err != nil {
@@ -279,7 +279,7 @@ func (e *MatcherEvaluator) EvaluateWithContext(ctx *EventContext) ([]bool, error
 		}
 		results[i] = matched
 	}
-	
+
 	return results, nil
 }
 
@@ -299,7 +299,7 @@ func (b *MatcherBuilder) BuildEvaluator(primitives []ir.Primitive) (*MatcherEval
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return NewMatcherEvaluator(compiled), nil
 }
 

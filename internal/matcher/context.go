@@ -200,7 +200,7 @@ func findFieldCaseInsensitive(v reflect.Value, name string) reflect.Value {
 		if strings.EqualFold(field.Name, name) {
 			return v.Field(i)
 		}
-		
+
 		// Check json tag
 		if jsonTag := field.Tag.Get("json"); jsonTag != "" {
 			tagName := strings.Split(jsonTag, ",")[0]
